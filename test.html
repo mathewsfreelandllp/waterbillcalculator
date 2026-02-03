@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Bill Calculator - Test Suite</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            background: #f8fafc;
+        }
+        h1 {
+            color: #1e293b;
+        }
+        .test-suite {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+        .test-case {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-left: 4px solid #94a3b8;
+            background: #f8fafc;
+            border-radius: 0.25rem;
+        }
+        .test-case.pass {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+        .test-case.fail {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .test-name {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .test-result {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        .test-error {
+            color: #dc2626;
+            font-family: monospace;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 0.25rem;
+        }
+        .summary {
+            background: #f1f5f9;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin-top: 2rem;
+        }
+        .summary.all-pass {
+            background: #f0fdf4;
+            border: 2px solid #10b981;
+        }
+        .summary.has-fails {
+            background: #fef2f2;
+            border: 2px solid #ef4444;
+        }
+        .stats {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+        .stat {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: #64748b;
+            font-weight: 400;
+        }
+        .pass-stat { color: #10b981; }
+        .fail-stat { color: #ef4444; }
+        .total-stat { color: #2563eb; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Water Bill Calculator Test Suite</h1>
+    <div id="test-results"></div>
+    <div id="summary" class="summary"></div>
+
+    <script>
+        // Import the rate data and calculation functions
+        const RATES = {
+            fixedCharges: {
+                '5/8': { year1: 15.00, year2: 15.75, year3: 16.54 },
+                '3/4': { year1: 22.50, year2: 23.63, year3: 24.81 },
+                '1': { year1: 37.50, year2: 39.38, year3: 41.34 }
+            },
+            usageRates: {
+                year1: [
+                    { min: 0, max: 5000, rate: 2.50 },
+                    { min: 5001, max: 10000, rate: 3.00 },
+                    { min: 10001, max: 20000, rate: 3.50 },
+                    { min: 20001, max: Infinity, rate: 4.00 }
+                ],
+                year2: [
+                    { min: 0, max: 5000, rate: 2.63 },
+                    { min: 5001, max: 10000, rate: 3.15 },
+                    { min: 10001, max: 20000, rate: 3.68 },
+                    { min: 20001, max: Infinity, rate: 4.20 }
+                ],
+                year3: [
+                    { min: 0, max: 5000, rate: 2.76 },
+                    { min: 5001, max: 10000, rate: 3.31 },
+                    { min: 10001, max: 20000, rate: 3.86 },
+                    { min: 20001, max: Infinity, rate: 4.41 }
+                ]
+            }
+        };
+
+        function calculateUsageCharges(gallons, yearRates) {
+            let remainingGallons = gallons;
+            let totalCharge = 0;
+            const breakdown = [];
+
+            for (const tier of yearRates) {
+                if (remainingGallons <= 0) break;
+
+                const tierMax = tier.max === Infinity ? Infinity : tier.max;
+                const tierMin = tier.min;
+                const tierCapacity = tierMax === Infinity ? Infinity : tierMax - tierMin + 1;
+                
+                const gallonsInTier = Math.min(remainingGallons, tierCapacity);
+                
+                if (gallonsInTier > 0) {
+                    const charge = (gallonsInTier / 1000) * tier.rate;
+                    totalCharge += charge;
+                    
+                    breakdown.push({
+                        gallons: gallonsInTier,
+                        rate: tier.rate,
+                        charge: charge,
+                        tierDesc: tierMax === Infinity 
+                            ? `${tierMin.toLocaleString()}+ gallons`
+                            : `${tierMin.toLocaleString()} - ${tierMax.toLocaleString()} gallons`
+                    });
+                    
+                    remainingGallons -= gallonsInTier;
+                }
+            }
+
+            return { totalCharge, breakdown };
+        }
+
+        function calculateYearBill(gallons, meterSize, year) {
+            const yearKey = `year${year}`;
+            const fixedCharge = RATES.fixedCharges[meterSize][yearKey];
+            const yearRates = RATES.usageRates[yearKey];
+            
+            const { totalCharge: usageCharge, breakdown } = calculateUsageCharges(gallons, yearRates);
+            const totalBill = fixedCharge + usageCharge;
+            
+            return {
+                fixedCharge,
+                usageCharge,
+                totalBill,
+                breakdown
+            };
+        }
+
+        // Test framework
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+
+            test(name, fn) {
+                this.tests.push({ name, fn });
+            }
+
+            assertEqual(actual, expected, message = '') {
+                if (actual !== expected) {
+                    throw new Error(`Expected ${expected}, got ${actual}. ${message}`);
+                }
+            }
+
+            assertAlmostEqual(actual, expected, tolerance = 0.01, message = '') {
+                if (Math.abs(actual - expected) > tolerance) {
+                    throw new Error(`Expected ${expected}, got ${actual} (tolerance: ${tolerance}). ${message}`);
+                }
+            }
+
+            async run() {
+                const resultsDiv = document.getElementById('test-results');
+                let passed = 0;
+                let failed = 0;
+
+                for (const test of this.tests) {
+                    const testDiv = document.createElement('div');
+                    testDiv.className = 'test-suite';
+                    
+                    try {
+                        await test.fn(this);
+                        testDiv.innerHTML = `
+                            <div class="test-case pass">
+                                <div class="test-name">✓ ${test.name}</div>
+                                <div class="test-result">Passed</div>
+                            </div>
+                        `;
+                        passed++;
+                        this.results.push({ name: test.name, passed: true });
+                    } catch (error) {
+                        testDiv.innerHTML = `
+                            <div class="test-case fail">
+                                <div class="test-name">✗ ${test.name}</div>
+                                <div class="test-result">Failed</div>
+                                <div class="test-error">${error.message}</div>
+                            </div>
+                        `;
+                        failed++;
+                        this.results.push({ name: test.name, passed: false, error: error.message });
+                    }
+                    
+                    resultsDiv.appendChild(testDiv);
+                }
+
+                // Display summary
+                const summaryDiv = document.getElementById('summary');
+                const total = passed + failed;
+                const allPassed = failed === 0;
+                
+                summaryDiv.className = `summary ${allPassed ? 'all-pass' : 'has-fails'}`;
+                summaryDiv.innerHTML = `
+                    <h2>${allPassed ? '✓ All Tests Passed!' : '⚠ Some Tests Failed'}</h2>
+                    <div class="stats">
+                        <div>
+                            <div class="stat total-stat">${total}</div>
+                            <div class="stat-label">Total Tests</div>
+                        </div>
+                        <div>
+                            <div class="stat pass-stat">${passed}</div>
+                            <div class="stat-label">Passed</div>
+                        </div>
+                        <div>
+                            <div class="stat fail-stat">${failed}</div>
+                            <div class="stat-label">Failed</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Test cases
+        const runner = new TestRunner();
+
+        runner.test('Fixed charge for 5/8" meter - Year 1', (t) => {
+            const result = calculateYearBill(0, '5/8', 1);
+            t.assertEqual(result.fixedCharge, 15.00, 'Fixed charge should be $15.00');
+        });
+
+        runner.test('Fixed charge for 3/4" meter - Year 2', (t) => {
+            const result = calculateYearBill(0, '3/4', 2);
+            t.assertEqual(result.fixedCharge, 23.63, 'Fixed charge should be $23.63');
+        });
+
+        runner.test('Fixed charge for 1" meter - Year 3', (t) => {
+            const result = calculateYearBill(0, '1', 3);
+            t.assertEqual(result.fixedCharge, 41.34, 'Fixed charge should be $41.34');
+        });
+
+        runner.test('Zero gallons usage', (t) => {
+            const result = calculateYearBill(0, '5/8', 1);
+            t.assertEqual(result.usageCharge, 0, 'Usage charge should be $0 for 0 gallons');
+            t.assertEqual(result.totalBill, 15.00, 'Total should equal fixed charge only');
+        });
+
+        runner.test('Example case: 10,000 gallons with 5/8" meter - Year 1', (t) => {
+            const result = calculateYearBill(10000, '5/8', 1);
+            // Fixed: $15.00
+            // Tier 1 (5,001 gal @ $2.50/1k): $12.50
+            // Tier 2 (4,999 gal @ $3.00/1k): $15.00
+            // Total: $42.50
+            t.assertAlmostEqual(result.totalBill, 42.50, 0.01, 'Total should be $42.50');
+        });
+
+        runner.test('Example case: 10,000 gallons with 5/8" meter - Year 2', (t) => {
+            const result = calculateYearBill(10000, '5/8', 2);
+            t.assertAlmostEqual(result.totalBill, 44.65, 0.01, 'Total should be $44.65');
+        });
+
+        runner.test('Example case: 10,000 gallons with 5/8" meter - Year 3', (t) => {
+            const result = calculateYearBill(10000, '5/8', 3);
+            t.assertAlmostEqual(result.totalBill, 46.89, 0.01, 'Total should be $46.89');
+        });
+
+        runner.test('Single tier usage: 3,000 gallons', (t) => {
+            const result = calculateYearBill(3000, '5/8', 1);
+            // Fixed: $15.00
+            // Tier 1 (3,000 gal @ $2.50/1k): $7.50
+            // Total: $22.50
+            t.assertAlmostEqual(result.totalBill, 22.50, 0.01, 'Total should be $22.50');
+        });
+
+        runner.test('All four tiers: 25,000 gallons with 1" meter - Year 1', (t) => {
+            const result = calculateYearBill(25000, '1', 1);
+            // Fixed: $37.50
+            // Tier 1 (5,001 gal @ $2.50/1k): $12.50
+            // Tier 2 (5,000 gal @ $3.00/1k): $15.00
+            // Tier 3 (10,000 gal @ $3.50/1k): $35.00
+            // Tier 4 (4,999 gal @ $4.00/1k): $20.00
+            // Total: $120.00
+            t.assertAlmostEqual(result.totalBill, 120.00, 0.01, 'Total should be $120.00');
+        });
+
+        runner.test('Large usage: 50,000 gallons', (t) => {
+            const result = calculateYearBill(50000, '1', 1);
+            // Fixed: $37.50
+            // Tier 1: 5,001 @ $2.50 = $12.50
+            // Tier 2: 5,000 @ $3.00 = $15.00
+            // Tier 3: 10,000 @ $3.50 = $35.00
+            // Tier 4: 29,999 @ $4.00 = $120.00
+            // Total: $220.00
+            t.assertAlmostEqual(result.totalBill, 220.00, 0.01, 'Total should be $220.00');
+        });
+
+        runner.test('Edge case: Exactly 5,000 gallons', (t) => {
+            const result = calculateYearBill(5000, '5/8', 1);
+            // Fixed: $15.00
+            // Tier 1 (5,000 gal @ $2.50/1k): $12.50
+            // Total: $27.50
+            t.assertAlmostEqual(result.totalBill, 27.50, 0.01, 'Total should be $27.50');
+        });
+
+        runner.test('Edge case: Just over tier boundary (5,001 gallons)', (t) => {
+            const result = calculateYearBill(5001, '5/8', 1);
+            // Tier 1 is 0-5000 which includes 5001 gallons (indices 0 through 5000)
+            // So 5,001 gallons fits entirely in tier 1
+            const { breakdown } = result;
+            t.assertEqual(breakdown.length, 1, 'Should fit in tier 1');
+            t.assertEqual(breakdown[0].gallons, 5001, 'Tier 1 should have all 5,001 gallons');
+        });
+
+        runner.test('Breakdown details are accurate', (t) => {
+            const result = calculateYearBill(10000, '5/8', 1);
+            t.assertEqual(result.breakdown.length, 2, 'Should have 2 tier entries');
+            t.assertAlmostEqual(result.breakdown[0].charge + result.breakdown[1].charge, 
+                result.usageCharge, 0.01, 'Breakdown charges should sum to usage charge');
+        });
+
+        runner.test('Year 2 rates are higher than Year 1', (t) => {
+            const y1 = calculateYearBill(10000, '5/8', 1);
+            const y2 = calculateYearBill(10000, '5/8', 2);
+            if (y2.totalBill <= y1.totalBill) {
+                throw new Error('Year 2 should be more expensive than Year 1');
+            }
+        });
+
+        runner.test('Year 3 rates are higher than Year 2', (t) => {
+            const y2 = calculateYearBill(10000, '5/8', 2);
+            const y3 = calculateYearBill(10000, '5/8', 3);
+            if (y3.totalBill <= y2.totalBill) {
+                throw new Error('Year 3 should be more expensive than Year 2');
+            }
+        });
+
+        runner.test('Larger meter has higher fixed charge', (t) => {
+            const small = calculateYearBill(0, '5/8', 1);
+            const medium = calculateYearBill(0, '3/4', 1);
+            const large = calculateYearBill(0, '1', 1);
+            
+            if (medium.fixedCharge <= small.fixedCharge) {
+                throw new Error('3/4" meter should cost more than 5/8"');
+            }
+            if (large.fixedCharge <= medium.fixedCharge) {
+                throw new Error('1" meter should cost more than 3/4"');
+            }
+        });
+
+        // Run all tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            runner.run();
+        });
+    </script>
+</body>
+</html>

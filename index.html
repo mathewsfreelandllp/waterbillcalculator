@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Bill Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Residential Water Service Rate Calculator</h1>
+            <p class="subtitle">Calculate your monthly water bill for the next 3 years</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <h2>Enter Your Information</h2>
+                
+                <div class="form-group">
+                    <label for="gallons">Monthly Water Usage (Gallons)</label>
+                    <input 
+                        type="number" 
+                        id="gallons" 
+                        placeholder="e.g., 10000" 
+                        min="0"
+                        step="1"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="meter-size">Meter Size</label>
+                    <select id="meter-size">
+                        <option value="">-- Select Meter Size --</option>
+                        <option value="5/8">5/8"</option>
+                        <option value="3/4">3/4"</option>
+                        <option value="1">1"</option>
+                    </select>
+                </div>
+
+                <button id="calculate-btn" class="btn-primary">Calculate Bill</button>
+            </section>
+
+            <section class="results-section" id="results-section" style="display: none;">
+                <h2>Your Monthly Bill Estimates</h2>
+                
+                <div class="results-grid">
+                    <div class="result-card">
+                        <h3>Year 1</h3>
+                        <div class="amount" id="year1-total">$0.00</div>
+                        <button class="btn-details" data-year="1">View Details</button>
+                    </div>
+                    
+                    <div class="result-card">
+                        <h3>Year 2</h3>
+                        <div class="amount" id="year2-total">$0.00</div>
+                        <button class="btn-details" data-year="2">View Details</button>
+                    </div>
+                    
+                    <div class="result-card">
+                        <h3>Year 3</h3>
+                        <div class="amount" id="year3-total">$0.00</div>
+                        <button class="btn-details" data-year="3">View Details</button>
+                    </div>
+                </div>
+
+                <div class="breakdown-section" id="breakdown-section" style="display: none;">
+                    <h3>Calculation Breakdown - <span id="breakdown-year"></span></h3>
+                    <div id="breakdown-content"></div>
+                    <button class="btn-secondary" id="close-breakdown">Close Details</button>
+                </div>
+            </section>
+
+            <section class="rate-info">
+                <h2>Rate Information</h2>
+                <p>This calculator uses tiered rate structures for residential water service. Rates increase over the 3-year period.</p>
+                
+                <details>
+                    <summary>View Rate Sheet Details</summary>
+                    <div class="rate-tables">
+                        <h4>Fixed Monthly Charges by Meter Size</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Meter Size</th>
+                                    <th>Year 1</th>
+                                    <th>Year 2</th>
+                                    <th>Year 3</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>5/8"</td>
+                                    <td>$15.00</td>
+                                    <td>$15.75</td>
+                                    <td>$16.54</td>
+                                </tr>
+                                <tr>
+                                    <td>3/4"</td>
+                                    <td>$22.50</td>
+                                    <td>$23.63</td>
+                                    <td>$24.81</td>
+                                </tr>
+                                <tr>
+                                    <td>1"</td>
+                                    <td>$37.50</td>
+                                    <td>$39.38</td>
+                                    <td>$41.34</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h4>Usage Rates per 1,000 Gallons (Tiered)</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Usage Tier</th>
+                                    <th>Year 1</th>
+                                    <th>Year 2</th>
+                                    <th>Year 3</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>0 - 5,000 gallons</td>
+                                    <td>$2.50</td>
+                                    <td>$2.63</td>
+                                    <td>$2.76</td>
+                                </tr>
+                                <tr>
+                                    <td>5,001 - 10,000 gallons</td>
+                                    <td>$3.00</td>
+                                    <td>$3.15</td>
+                                    <td>$3.31</td>
+                                </tr>
+                                <tr>
+                                    <td>10,001 - 20,000 gallons</td>
+                                    <td>$3.50</td>
+                                    <td>$3.68</td>
+                                    <td>$3.86</td>
+                                </tr>
+                                <tr>
+                                    <td>20,001+ gallons</td>
+                                    <td>$4.00</td>
+                                    <td>$4.20</td>
+                                    <td>$4.41</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Water Service Rate Calculator</p>
+        </footer>
+    </div>
+
+    <script src="calculator.js"></script>
+</body>
+</html>
