@@ -165,7 +165,7 @@ function calculateBill() {
     const meterSize = meterSizeInput.value;
     
     // Validation
-    if (!gallons || gallons < 0) {
+    if (isNaN(gallons) || gallons < 0) {
         alert('Please enter a valid water usage amount in gallons.');
         gallonsInput.focus();
         return;
